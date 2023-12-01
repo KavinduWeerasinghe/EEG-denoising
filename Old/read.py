@@ -1,9 +1,7 @@
 import numpy as np
-import wfdb
 from scipy import signal
 import mne
 import matplotlib.pyplot as plt
-import pywt
 from skimage.restoration import denoise_wavelet
 from GUI import make_GUI
 
@@ -35,7 +33,7 @@ def open_annotations(file,number):
             print(lines)
     return None
 
-def open_record(rec_fol: str, rec_num : str)->tuple:
+def open_record(rec_fol: str, rec_num : str,c_num=2)->tuple:
     """This function opens a given recording in NST database.
 
     :param rec_num: The number/name combination of NST databse
@@ -49,13 +47,12 @@ def open_record(rec_fol: str, rec_num : str)->tuple:
         
     database location : D:/Intership/Template matching/databases/data_NST/
     """
-    data=mne.io.read_raw_edf("F:/FYP/CHB-MIT/chb01/chb01_01.edf")  # noqa: E501
+    data=mne.io.read_raw_edf("D:/FYP/CHB-MIT/chb01/chb01_01.edf".format(rec_fol,rec_num))  # noqa: E501
     time,raw_data = data.times,data.get_data()
     #open_annotations("F:/FYP/Sienna Scalp dataset/files/sienna-scalp-eeg/1.0.0/{0}/Seizures-list-{1}.txt".format(rec_fol,rec_fol),rec_num)  # noqa: E501
-# you can get the metadata included in the file and a list of all channels:
+    # you can get the metadata included in the file and a list of all channels:
     info = data.info
     channels = data.ch_names
-    c_num=2
     output=raw_data[c_num]
     channel_name=channels[c_num]
     #output=signal.resample_poly(output, down=360, up=250)
@@ -106,5 +103,4 @@ axs[1,0].set_title("Beta band")
 axs[1,1].set_title("Gamma band")
 
 #show the plot in GUI
-
-make_GUI(fig)
+make_GUI(fig,time,Y)
