@@ -46,7 +46,7 @@ def display_tk_window(time,EEG,ICA,annotation):
             'Channel 8',
             'Channel 9']
     #add a button to plot the graph
-    tk.Button(window,text='Plot',command=lambda: plot_one_plot(time,EEG,ICA,values.index(combo.get()),annotation)).place(x=830,y=850)
+    tk.Button(window,text='Plot',command=lambda: plot_one_plot(time,EEG,ICA,values.index(combo.get()),annotation)).place(x=1030,y=845)
 
     window.mainloop()
 
