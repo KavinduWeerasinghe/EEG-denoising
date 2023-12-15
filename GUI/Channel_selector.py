@@ -32,7 +32,13 @@ def display_tk_window(time,EEG,ICA,annotation):
             'Channel 6',
             'Channel 7',
             'Channel 8',
-            'Channel 9'
+            'Channel 9',
+            'Channel 10',
+            'Channel 11',
+            'Channel 12',
+            'Channel 13',
+            'Channel 14',
+            'Channel 15'
         ]
     )
     combo.place(x=750,y=850)
@@ -44,7 +50,13 @@ def display_tk_window(time,EEG,ICA,annotation):
             'Channel 6',
             'Channel 7',
             'Channel 8',
-            'Channel 9']
+            'Channel 9',
+            'Channel 10',
+            'Channel 11',
+            'Channel 12',
+            'Channel 13',
+            'Channel 14',
+            'Channel 15']
     #add a button to plot the graph
     tk.Button(window,text='Plot',command=lambda: plot_one_plot(time,EEG,ICA,values.index(combo.get()),annotation)).place(x=1030,y=845)
 

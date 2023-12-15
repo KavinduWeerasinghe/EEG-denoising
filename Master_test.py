@@ -4,7 +4,7 @@ from scipy import signal,fft
 from Read.Read import open_record
 from Filtering import Basic_filters as bf
 from sklearn.decomposition import FastICA,PCA
-from GUI import Channel_selector as cs
+#from GUI import Channel_selector as cs
 
 fs=250
 Folders=["chb01","chb02","chb03"]
@@ -40,54 +40,66 @@ X=X.T
 
 print(X.shape)
 
-sources=9
+sources=15
 view_sources=5
 
 #normalizing the output
 #output=(output-np.mean(output))/np.std(output)
+
+#trim X to use only the first 30 seconds
+X=X[:7500,:]
+#trim time to use only the first 30 seconds
+time=time[:7500]
 
 pca=PCA(n_components=sources)
 pca_output=pca.fit_transform(X)
 
 print(pca.explained_variance_ratio_)
 
-#plot the pca output
-fig2, axs2 = plt.subplots(3,3)
-for i in range(3):
+ica=FastICA(n_components=sources,
+            whiten='unit-variance')
+ica_output=ica.fit_transform(X)
+
+#finding the normalizing factor
+total_of_ICA=np.sum(ica_output,axis=1)
+total_of_X=np.sum(X,axis=1)
+normalizing_factor=(max(total_of_X)/max(total_of_ICA))/5
+print(normalizing_factor)
+
+#normalize the signal X 
+X=X/normalizing_factor
+
+#plottinG icaS ON THE SAME SCALE
+fig2, axs2 = plt.subplots(5,3)
+for i in range(view_sources):
     for j in range(3):
-        axs2[i,j].plot(time,pca_output[:,i*3+j])
-        axs2[i,j].set_title("PCA Component {}".format(i*3+j))
+        axs2[i,j].plot(time,X[:,i+j])
+        axs2[i,j].plot(time,ica_output[:,i+j])
+        axs2[i,j].set_title("ICA Component {}".format(i+j))
         axs2[i,j].set_xlabel("Time (s)")
         axs2[i,j].set_ylabel("Amplitude")
         axs2[i,j].grid(True)
-        axs2[i,j].axhline(y=0,color="red")
-        axs2[i,j].axvline(x=annotation[0],color="red")
-        axs2[i,j].axvline(x=annotation[1],color="red")
-        axs2[i,j].set_ylim(-0.001,0.001)
+        axs2[i,j].set_ylim([-10,10])
+        axs2[i,j].legend(["Original","ICA"])
+        #for k in range(len(annotation)):
+            #axs2[i,j].axvline(x=annotation[k],color="red")
 
-ica=FastICA(n_components=sources,
-            whiten=False)
-ica_output=ica.fit_transform(pca_output)
-
-
-#plot the ica output but for a small timeframe eg: 10 seconds
-fig3, axs3 = plt.subplots(3,3)
-for i in range(3):
+#plotting the frequency spectrum of the ica components
+fig3, axs3 = plt.subplots(5,3)
+for i in range(view_sources):
     for j in range(3):
-        axs3[i,j].plot(time,ica_output[:,i*3+j])
-        axs3[i,j].set_title("ICA Component {}".format(i*3+j))
-        axs3[i,j].set_xlabel("Time (s)")
-        axs3[i,j].set_ylabel("Amplitude")
+        f, Pxx_den = signal.welch(ica_output[:,i+j], fs, nperseg=1024)
+        axs3[i,j].semilogy(f, Pxx_den)
+        axs3[i,j].set_title("ICA Component {}".format(i+j))
+        axs3[i,j].set_xlabel("Frequency (Hz)")
+        axs3[i,j].set_ylabel("PSD")
         axs3[i,j].grid(True)
-        axs3[i,j].axhline(y=0,color="red")
-        axs3[i,j].axvline(x=annotation[0],color="red")
-        axs3[i,j].axvline(x=annotation[1],color="red")
-        axs3[i,j].set_ylim(-0.001,0.001)
-        axs3[i,j].set_xlim(10,20)
 
 plt.show()
 
-cs.display_tk_window(time,X,ica_output,annotation)
+print(ica_output.shape)
 
-plt.show()
+#cs.display_tk_window(time,X,ica_output,annotation)
+
+#plt.show()
 

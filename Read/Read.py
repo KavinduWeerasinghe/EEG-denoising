@@ -22,10 +22,12 @@ def read_txt(file_name: str,file_num)->list:
                 return 0,0
     return lines
 
-def open_record(rec_fol: str, rec_num : str,Channel_list:list,mode="BNC_config")->tuple:
+def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)],mode="BNC_config",output_raw=False)->tuple:
     data=mne.io.read_raw_edf("D:/FYP/CHB-MIT/{0}/{0}_{1}.edf".format(rec_fol,rec_num))  # noqa: E501
     time,raw_data = data.times,data.get_data()
     info = data.info
+    if output_raw:
+        return time,raw_data
     channels = data.ch_names
     output=[0 for i in range(len(Channel_list))]
     channel_name=[0 for i in range(len(Channel_list))]
