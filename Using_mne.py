@@ -38,7 +38,7 @@ for chan in eeg_data.keys():
         
 data = np.stack(eeg)
 sf = 256
-print(eeg)
+
 # make 1020
 mne_info = mne.create_info(
                     channel_names,
@@ -81,9 +81,17 @@ for i in range(len(labels)):
 ica = ica_obj.get_sources(mne_raw).get_data()
 print(ica.shape)
 
+#remove the components 4 and 7
+ica_obj.exclude = exclude
+mne_raw = ica_obj.apply(mne_raw)
+
+#plot the channels
+mne_raw.plot(scalings='auto',clipping=None)
+
 ica_obj.plot_sources(mne_raw)
 
 ica_obj.plot_components(picks=None,show=True, inst=mne_raw)
+
 
 #ica_obj.plot_properties(mne_raw, picks=[0], show=True)
 

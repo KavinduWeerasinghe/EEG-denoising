@@ -47,9 +47,12 @@ view_sources=5
 #output=(output-np.mean(output))/np.std(output)
 
 #trim X to use only the first 30 seconds
-X=X[:7500,:]
+seconds=30
+sampples=seconds*fs
+
+X=X[:sampples,:]
 #trim time to use only the first 30 seconds
-time=time[:7500]
+time=time[:sampples]
 
 pca=PCA(n_components=sources)
 pca_output=pca.fit_transform(X)
