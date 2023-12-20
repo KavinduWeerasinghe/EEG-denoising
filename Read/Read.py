@@ -3,7 +3,7 @@ from scipy import signal
 import numpy
 
 #function to read a .txt file
-def read_txt(file_name: str,file_num)->list:
+def read_txt(file_name: str,file_num,fs:float)->list:
     path="D:/FYP/CHB-MIT/{0}/{0}-summary.txt".format(file_name)
     with open(path) as f:
         lines = f.readlines()
@@ -15,17 +15,20 @@ def read_txt(file_name: str,file_num)->list:
             if Num_sz==1:
                 start=int((lines[k+4].split(":")[1].strip()).split(" ")[0])
                 end=int((lines[k+5].split(":")[1].strip()).split(" ")[0])
-                start=int(start*250/360)
-                end=int(end*250/360)
+                start=int(start*250/fs)
+                end=int(end*250/fs)
                 return start,end
             else:
                 return 0,0
     return lines
 
-def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)],mode="BNC_config",output_raw=False)->tuple:
+def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)],mode="BNC_config",output_raw=False,plot_graph=False)->tuple:
     data=mne.io.read_raw_edf("D:/FYP/CHB-MIT/{0}/{0}_{1}.edf".format(rec_fol,rec_num))  # noqa: E501
     time,raw_data = data.times,data.get_data()
     info = data.info
+    if plot_graph:
+        data.plot(duration=60, proj=False, n_channels=len(data.ch_names), remove_dc=False,scalings="auto")
+    fs=info["sfreq"]
     if output_raw:
         return time,raw_data
     channels = data.ch_names
@@ -40,9 +43,9 @@ def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)
     else:
         output=output[0]
         channel_name=channel_name[0]
-    output=signal.resample_poly(output, down=360, up=250)
+    output=signal.resample_poly(output, down=fs, up=250)
     time=numpy.linspace(0, len(output)/250, num=len(output))
-    start,end = read_txt(rec_fol,rec_num)
+    start,end = read_txt(rec_fol,rec_num,fs)
     return output,channel_name,time,[start,end]
 
 def combine_channels(channel1,channel2,channel_name1,channel_name2):
