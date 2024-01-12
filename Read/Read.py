@@ -22,7 +22,7 @@ def read_txt(file_name: str,file_num,fs:float)->list:
                 return 0,0
     return lines
 
-def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)],mode="BNC_config",output_raw=False,plot_graph=False)->tuple:
+def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)],mode="BNC_config",output_raw=False,plot_graph=False,frs=250)->tuple:
     data=mne.io.read_raw_edf("D:/FYP/CHB-MIT/{0}/{0}_{1}.edf".format(rec_fol,rec_num))  # noqa: E501
     time,raw_data = data.times,data.get_data()
     info = data.info
@@ -43,8 +43,8 @@ def open_record(rec_fol: str, rec_num : str,Channel_list=[[i] for i in range(23)
     else:
         output=output[0]
         channel_name=channel_name[0]
-    output=signal.resample_poly(output, down=fs, up=250)
-    time=numpy.linspace(0, len(output)/250, num=len(output))
+    output=signal.resample_poly(output, down=fs, up=frs)
+    time=numpy.linspace(0, len(output)/frs, num=len(output))
     start,end = read_txt(rec_fol,rec_num,fs)
     return output,channel_name,time,[start,end]
 

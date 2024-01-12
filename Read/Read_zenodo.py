@@ -2,7 +2,7 @@ import mne
 from scipy import signal
 import numpy
 #"D:\FYP\Zenodo EEG\zenodo_eeg\eeg2.edf"
-def open_record(rec_num:str,Channel_list=[[i] for i in range(19)],mode='BNC_config')->tuple:
+def open_record(rec_num:str,Channel_list=[[i] for i in range(19)],mode='BNC_config',frs=250)->tuple:
     file="D:/FYP/Zenodo EEG/zenodo_eeg/eeg{0}.edf".format(rec_num)
     data=mne.io.read_raw_edf(file)
     time,raw_data = data.times,data.get_data()
@@ -19,8 +19,8 @@ def open_record(rec_num:str,Channel_list=[[i] for i in range(19)],mode='BNC_conf
     else:
         Output=Output[0]
         channel_name=channel_name[0]
-    Output=signal.resample_poly(Output, down=fs, up=250)
-    time=numpy.linspace(0, len(Output)/250, num=len(Output))
+    Output=signal.resample_poly(Output, down=fs, up=frs)
+    time=numpy.linspace(0, len(Output)/frs, num=len(Output))
     return Output,channel_name,time
 
 def combine_channels(channel1,channel2,channel_name1,channel_name2):

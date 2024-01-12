@@ -1,14 +1,19 @@
-from Read.Read_zenodo import open_record
+import matplotlib.pyplot as plt
+import numpy as np
 
-fs=250
-#Files=[str(i) for i in range(1,80)]
-Files=[str(i) for i in range(2,25)]+[str(i) for i in range(26,62)]+[str(i) for i in range(63,80)]
+x = np.linspace(0, 6*np.pi, 600)
+y = np.sin(x)
 
-mode="all_channels"
+# You probably won't need this if you're embedding things in a tkinter plot...
+plt.ion()
 
-if mode=="BNC_config":
-    Channels=[[1,2],[3,4],[5,6],[7,8],[9,10],[11,12],[13,14],[15,16],[20,21,22]] #mode = BNC_config
-else:
-    Channels=[[i] for i in range(18)]                                              #mode = all_channels
+fig = plt.figure()
+ax = fig.add_subplot(111)
+line1,=ax.plot(x, y, 'r-') # Returns a tuple of line objects, thus the comma
+line2,=ax.plot(x,np.cos(x),'b-')
 
-output=open_record(Files[1],mode=mode)
+for phase in np.linspace(0, 10*np.pi, 500):
+    line1.set_ydata(np.sin(x + phase))
+    line2.set_ydata(np.cos(x+phase))
+    fig.canvas.draw()
+    fig.canvas.flush_events()
