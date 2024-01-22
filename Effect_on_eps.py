@@ -10,6 +10,7 @@ from scipy.signal import periodogram as psd
 import scipy.io
 from sklearn.metrics import mutual_info_score
 from scipy.stats import chi2_contingency
+import seaborn as sns
 
 def calc_MI(x, y, bins):
     c_xy = np.histogram2d(x, y, bins)[0]
@@ -58,39 +59,70 @@ X,t=open_record_z(rec_num=valid_ans_keys[record_num],frs=fs,out="all-channels")
 mu_X=np.mean(X,axis=1)
 sigma_X=np.std(X,axis=1)
 X=(X.T-np.array([mu_X])).T/np.array([sigma_X]).T
-clean_array=bf.appy_basics(X,btype="highpass")
+clean_array=bf.appy_basics(X,btype="bandpass")
 beta_val=0.3
 k_1=0.1
 k_2=5
 #clean_arra_new=sp.eeg.ATAR(clean_array.T, wv='db3', winsize=128, beta=beta_val, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2)
 
 #computing variation of mutual information with the change of k_2
-k_2_list=[0.5,0.8,1,2,3,4,5]
-beta_val_list=[0.1,0.2,0.3,0.4,0.5]
-Mutual_information={}
-Correlation={}
-duration= 20 #in seconds
-for k_2 in k_2_list:
-    clean_arra_new=sp.eeg.ATAR(clean_array[:,:duration*fs].T, wv='db3', winsize=128, beta=beta_val, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2).T
-    Mutual_information[k_2]=[]
-    Correlation[k_2]=[]
-    for i in range(21):
-        Mutual_information[k_2].append(calc_MI(clean_array[i,:duration*fs],clean_arra_new[i,:],bins=10))
-        #Mutual_information[k_2].append(mutual_info_score(clean_array[i,:duration*fs],clean_arra_new[i,:]))
-        Correlation[k_2].append(np.corrcoef(clean_array[i,:duration*fs],clean_arra_new[i,:])[0,1])
+k_2_list=np.array([0.2,0.5,0.7])
+k_2_for_labels=["k= "+str(i) for i in k_2_list]
+beta_val_list=np.array([0.1,0.2,0.3,0.4,0.5])
+Mutual_information_art={}
+Mutual_information_nart={}
+Correlation_art={}
+Correlation_nart={}
+duration= 1 #in seconds
 
-#plotting the variation of mutual information and correlation. In each of the cases the mean and standard deviation of the values are calculated before plotting
-fig, axs = plt.subplots(2,1,figsize=(10,10))
-axs[0].plot(k_2_list,np.mean(np.array(list(Mutual_information.values())),axis=1))
-axs[0].set_title("Variation of Mutual Information with k_2")
-axs[0].set_xlabel("k_2")
-axs[0].set_ylabel("Mutual Information")
-axs[0].grid(True)
+for beta in beta_val_list:
+    MI_for_beta=[]
+    MI_for_beta_nart=[]
+    CC_for_beta=[]
+    CC_for_beta_nart=[]
+    print("beta=",beta)
+    for k_2 in k_2_list:
+        #clean_arra_new=sp.eeg.ATAR(clean_array[:,:duration*fs].T, wv='db3', winsize=128, beta=beta, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2).T
+        t0=time.time()
+        ref_clean_arr= sp.eeg.ICA_filtering(clean_array[:,:duration*fs].T,verbose=0,ICA_method="fastica",winsize=128).T
+        clean_array_with_artifacts=sp.eeg.ATAR(clean_array[:,:duration*fs].T, wv='db3', winsize=128, beta=beta, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2).T
+        clean_arra_no_artefacts=sp.eeg.ATAR(ref_clean_arr.T, wv='db3', winsize=128, beta=beta, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2).T
+        MI_for_beta_k2=[]
+        MI_for_beta_nart_k2=[]
+        CC_for_beta_k2=[]
+        CC_for_beta_nart_k2=[]
+        for i in range(21):
+            MI_for_beta_k2.append(calc_MI(clean_array[i,:duration*fs],clean_array_with_artifacts[i,:],bins=10))
+            MI_for_beta_nart_k2.append(calc_MI(ref_clean_arr[i,:duration*fs],clean_arra_no_artefacts[i,:],bins=10))
+            CC_for_beta_k2.append(np.corrcoef(clean_array[i,:duration*fs],clean_array_with_artifacts[i,:])[0,1])
+            CC_for_beta_nart_k2.append(np.corrcoef(ref_clean_arr[i,:duration*fs],clean_arra_no_artefacts[i,:])[0,1])
+        MI_for_beta.append(np.array(MI_for_beta_k2))
+        MI_for_beta_nart.append(np.array(MI_for_beta_nart_k2))
+        CC_for_beta.append(np.array(CC_for_beta_k2))
+        CC_for_beta_nart.append(np.array(CC_for_beta_nart_k2))
+    Mutual_information_art[beta]=np.array(MI_for_beta)
+    Mutual_information_nart[beta]=np.array(MI_for_beta_nart)
+    Correlation_art[beta]=np.array(CC_for_beta)
+    Correlation_nart[beta]=np.array(CC_for_beta_nart)
 
-axs[1].plot(k_2_list,np.mean(np.array(list(Correlation.values())),axis=1))
-axs[1].set_title("Variation of Correlation with k_2")
-axs[1].set_xlabel("k_2")
-axs[1].set_ylabel("Correlation")
-axs[1].grid(True)
+#plotting the variation of mutual information and correlation. In each of the cases the mean and standard deviation of the values are calculated before plotting. std is plotted as an error bar
+
+
+
+fig,ax=plt.subplots(2,2,figsize=(10,10),layout='constrained')
+ind=np.arange(len(k_2_list))
+width=0.1
+for i,beta in enumerate(beta_val_list):
+    ax[0,0].bar(ind+(2*i+1)*width,np.mean(Mutual_information_nart[beta],axis=1),yerr=np.var(Mutual_information_nart[beta],axis=1),width=width,label="beta = "+str(beta)+" artefact free")
+    ax[0,0].bar(ind+2*i*width,np.mean(Mutual_information_art[beta],axis=1),yerr=np.var(Mutual_information_art[beta],axis=1),width=width,label="beta = "+str(beta)+" with artefacts")
+ax[0,0].set_xticks(ind+width)
+ax[0,0].set_xticklabels(k_2_list)
+ax[0,0].set_xlabel("k_2")
+ax[0,0].set_ylabel("Mutual information")
+ax[0,0].legend()
+ax[0,0].legend(loc='upper left', ncols=3)
+
+
 plt.show()
+
 

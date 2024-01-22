@@ -17,7 +17,7 @@ plt.grid()
 plt.title('Xf: 14 channel - EEG Signal (filtered)')
 plt.show()
 
-XR = sp.eeg.ICA_filtering(Xf.copy(),verbose=0,winsize=128)
+XR = sp.eeg.ICA_filtering(Xf.copy(),verbose=1,winsize=128)
 
 plt.figure(figsize=(15,10))
 plt.subplot(221)
