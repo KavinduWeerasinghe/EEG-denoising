@@ -1,10 +1,7 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 
-sns.set_theme(style="whitegrid")
-data=sns.load_dataset("tips")
-ax=sns.boxplot(x=data["total_bill"])
-ax=sns.swarmplot(x=data["total_bill"],color=".25")
-ax.set(xlabel="Total Bill")
-ax.set_title("Total Bill")
-plt.show()
+a=np.array([0,1,1,1,0])
+b=np.array([1,0,1,1,0])
+c=np.array([0,1,1,1,1])
+
+print((a&b)|(a&c)|(b&c))

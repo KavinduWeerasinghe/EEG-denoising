@@ -11,6 +11,8 @@ import scipy.io
 from sklearn.metrics import mutual_info_score
 from scipy.stats import chi2_contingency
 import seaborn as sns
+import pandas as pd
+import sys
 
 def calc_MI(x, y, bins):
     c_xy = np.histogram2d(x, y, bins)[0]
@@ -41,8 +43,8 @@ for i in range(79):
     y3=y1[1]
     y4=y1[2]
     
-    y=np.multiply(np.multiply(y2,y3),y4)
-
+    #y=np.multiply(np.multiply(y2,y3),y4)
+    y=(y2&y3)|(y2&y4)|(y3&y4)
     #checking if y contains only 0s
     if np.any(y) and (str(i+1) in Files):
         valid_ans[str(i+1)]=np.repeat(y,fs)
@@ -52,7 +54,7 @@ Channels=[[i] for i in range(19)] #zenodo
 
 X=np.empty((len(Channels),))
 
-record_num=0
+record_num=int(sys.argv[1])
 X,t=open_record_z(rec_num=valid_ans_keys[record_num],frs=fs,out="all-channels")
 
 #normalizing X
@@ -66,14 +68,14 @@ k_2=5
 #clean_arra_new=sp.eeg.ATAR(clean_array.T, wv='db3', winsize=128, beta=beta_val, thr_method='ipr', OptMode='soft', verbose=0,k1=k_1,k2=k_2)
 
 #computing variation of mutual information with the change of k_2
-k_2_list=np.array([0.2,0.5,0.7])
+k_2_list=np.array([round(i/10,2) for i in range(1,11)])
 k_2_for_labels=["k= "+str(i) for i in k_2_list]
 beta_val_list=np.array([0.1,0.2,0.3,0.4,0.5])
 Mutual_information_art={}
 Mutual_information_nart={}
 Correlation_art={}
 Correlation_nart={}
-duration= 1 #in seconds
+duration=120#in seconds
 
 for beta in beta_val_list:
     MI_for_beta=[]
@@ -107,22 +109,56 @@ for beta in beta_val_list:
 
 #plotting the variation of mutual information and correlation. In each of the cases the mean and standard deviation of the values are calculated before plotting. std is plotted as an error bar
 
+#reconstructing the dictionary into a 1-D array
+def construnct_1D_dic(Data_dic):
+    for beta in Data_dic:
+        k_MI_CC=[]
+        for k_2 in range(len(k_2_list)):
+            #add mean and variance corresponding to k value
+            k_MI_CC.append([k_2_list[k_2],np.mean(Data_dic[beta][k_2]),np.std(Data_dic[beta][k_2])])
+        Data_dic[beta]=k_MI_CC
 
+    return Data_dic
 
-fig,ax=plt.subplots(2,2,figsize=(10,10),layout='constrained')
-ind=np.arange(len(k_2_list))
-width=0.1
-for i,beta in enumerate(beta_val_list):
-    ax[0,0].bar(ind+(2*i+1)*width,np.mean(Mutual_information_nart[beta],axis=1),yerr=np.var(Mutual_information_nart[beta],axis=1),width=width,label="beta = "+str(beta)+" artefact free")
-    ax[0,0].bar(ind+2*i*width,np.mean(Mutual_information_art[beta],axis=1),yerr=np.var(Mutual_information_art[beta],axis=1),width=width,label="beta = "+str(beta)+" with artefacts")
-ax[0,0].set_xticks(ind+width)
-ax[0,0].set_xticklabels(k_2_list)
-ax[0,0].set_xlabel("k_2")
-ax[0,0].set_ylabel("Mutual information")
-ax[0,0].legend()
-ax[0,0].legend(loc='upper left', ncols=3)
+Mutual_information_art=construnct_1D_dic(Mutual_information_art)
+Mutual_information_nart=construnct_1D_dic(Mutual_information_nart)
+Correlation_art=construnct_1D_dic(Correlation_art)
+Correlation_nart=construnct_1D_dic(Correlation_nart)
 
+def make_df(Data_dic):
+    df_list = []
+    for beta, arr in Data_dic.items():
+        # Create a dataframe for each beta value
+        Col=["k_2","mean","std"]
+        df = pd.DataFrame(arr, columns=Col)
+        df["beta"] = beta
+        df_list.append(df)
+    # Concatenate the dataframes
+    df = pd.concat(df_list, ignore_index=True)
+    return df
 
-plt.show()
+df_MI_art=make_df(Mutual_information_art)
+df_MI_nart=make_df(Mutual_information_nart)
+df_CC_art=make_df(Correlation_art)
+df_CC_nart=make_df(Correlation_nart)
 
+#combining the dataframes
+df_MI_art["type"]="artifacts"
+df_MI_nart["type"]="no artifacts"
+df_CC_art["type"]="artifacts"
+df_CC_nart["type"]="no artifacts"
+df_MI=pd.concat([df_MI_art,df_MI_nart],ignore_index=True)
+df_CC=pd.concat([df_CC_art,df_CC_nart],ignore_index=True)
 
+#plotting the dataframes grouped by artefacts and no artefacts
+sns.set_theme()
+#sns.set_style("ticks")
+
+#plotting barchart for the mutual information, grouped by artefacts and no artefacts, for different values of beta mean should be the height and var should be the error bar
+ax1=sns.catplot(data=df_MI, hue="type",x="k_2", y="mean",palette="colorblind")
+plt.title("Variation of mutual information with k_2 - record {0} and for duration {1}s".format(valid_ans_keys[record_num],duration))
+plt.savefig("MI_artefactual {0}.png".format(valid_ans_keys[record_num]),bbox_inches='tight',dpi=300,pad_inches=1)
+
+ax2=sns.catplot(data=df_CC, hue="type",x="k_2", y="mean",palette="colorblind")
+plt.title("Variation of correlation with k_2 - record {0} and for duration {1}s".format(valid_ans_keys[record_num],duration))
+plt.savefig("CC_artefactual {0}.png".format(valid_ans_keys[record_num]),bbox_inches='tight',dpi=300,pad_inches=1)
